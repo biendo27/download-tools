@@ -1,0 +1,28 @@
+# Binaries
+gdl
+gdl.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Output
+*.log
+*.iso
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.z0*
+
+# State files
+*.gdl.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
