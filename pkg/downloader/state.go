@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
+	"sync/atomic"
 )
 
 type ChunkState struct {
@@ -38,12 +39,26 @@ func (s *DownloadState) Save(filename string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
-	// We create a copy or just marshal directly if we assume workers 
-	// update fields that are safe (e.g. via atomic, or we lock here).
-	// For simplicity, we assume the lock protects the entire struct 
-	// during the marshal process.
+	// Create a snapshot to avoid race conditions during json.Marshal
+	// specifically for the Downloaded field which is updated atomically
+	snapshot := DownloadState{
+		URL:         s.URL,
+		File:        s.File,
+		Size:        s.Size,
+		Concurrency: s.Concurrency,
+		Chunks:      make([]*ChunkState, len(s.Chunks)),
+	}
+
+	for i, c := range s.Chunks {
+		snapshot.Chunks[i] = &ChunkState{
+			ID:         c.ID,
+			Start:      c.Start,
+			End:        c.End,
+			Downloaded: atomic.LoadInt64(&c.Downloaded),
+		}
+	}
 	
-	data, err := json.MarshalIndent(s, "", "  ")
+	data, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return err
 	}
